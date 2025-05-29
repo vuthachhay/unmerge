@@ -1,16 +1,13 @@
-from flask import Flask, request, send_file
+import streamlit as st
 from openpyxl import load_workbook
 import io
 
-app = Flask(__name__)
+st.title("Unmerge Excel Cells and Download")
 
-@app.route('/unmerge', methods=['POST'])
-def unmerge_and_download():
-    if 'file' not in request.files:
-        return 'No file uploaded.', 400
+uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
 
-    file = request.files['file']
-    in_mem_file = io.BytesIO(file.read())
+if uploaded_file:
+    in_mem_file = io.BytesIO(uploaded_file.read())
     wb = load_workbook(in_mem_file)
     for ws in wb.worksheets:
         merged_ranges = list(ws.merged_cells.ranges)
@@ -19,12 +16,9 @@ def unmerge_and_download():
     out_mem_file = io.BytesIO()
     wb.save(out_mem_file)
     out_mem_file.seek(0)
-    return send_file(
-        out_mem_file,
-        as_attachment=True,
-        download_name='unmerged_' + file.filename,
-        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    st.download_button(
+        label="Download unmerged Excel file",
+        data=out_mem_file,
+        file_name="unmerged_" + uploaded_file.name,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-if __name__ == '__main__':
-    app.run(debug=True)
